@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>크로노 바스티온 3D (Chrono Bastion) : 전술 유물 디펜스 및 드론 액션</title>
+<meta name="description" content="Three.js 3D 전술 성채 디펜스와 발라트로식 유물 배수(Chips × Mult) 시너지 조합, 실시간 지휘 드론 조작을 결합한 무설치 웹게임">
+<meta property="og:title" content="크로노 바스티온 3D : 전술 유물 디펜스">
+<meta property="og:description" content="3D 타일 위에 포탑을 배치하고 유물 배수 시너지를 조합해 시간균열 침공군을 막아내세요.">
+<meta property="og:image" content="https://kevin9327.github.io/chrono-bastion-3d/thumbnail.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@500;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* Hallmark · Warm Archival Tactical Bastion HUD · Four-Zone Layout */
+:root {
+  --bg-canvas: #F5F2EB;
+  --bg-elevated: #ECE7DC;
+  --bg-pad: rgba(245, 242, 235, 0.88);
+  --bg-dark-stage: #12151B;
+  --bg-hud-pill: rgba(18, 21, 27, 0.86);
+  --bg-backdrop: rgba(18, 21, 27, 0.84);
+  --ink-primary: #17191E;
+  --ink-secondary: #484E5A;
+  --ink-muted: #727987;
+  --ink-on-accent: #FDFBF7;
+  --accent-amber: #C84B1C;
+  --accent-amber-hover: #AD3D14;
+  --accent-amber-soft: rgba(200, 75, 28, 0.12);
+  --accent-amber-float: rgba(200, 75, 28, 0.92);
+  --accent-teal: #0E6B5E;
+  --accent-teal-hover: #0A5248;
+  --accent-teal-soft: rgba(14, 107, 94, 0.12);
+  --accent-gold: #A87412;
+  --hud-cyan: #5CD6C8;
+  --hud-coral: #FF8B5E;
+  --hairline: rgba(23, 25, 30, 0.12);
+  --hairline-strong: rgba(23, 25, 30, 0.24);
+  --hairline-light: rgba(245, 242, 235, 0.22);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-display: 'Bricolage Grotesque', 'Pretendard', sans-serif;
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+.num, .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-sub {
+  font-size: 0.85rem;
+  color: var(--ink-secondary);
+}
+
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--ink-primary);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 100ms ease, border-color 140ms ease;
+}
+
+.btn:hover {
+  background: var(--bg-canvas);
+  border-color: var(--ink-primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-amber);
+  color: var(--ink-on-accent);
+  border-color: var(--accent-amber);
+}
+
+.btn-primary:hover {
+  background: var(--accent-amber-hover);
+  border-color: var(--accent-amber-hover);
+}
+
+.btn-teal {
+  background: var(--accent-teal);
+  color: var(--ink-on-accent);
+  border-color: var(--accent-teal);
+}
+
+.btn-teal:hover {
+  background: var(--accent-teal-hover);
+  border-color: var(--accent-teal-hover);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stage-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hud-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .hud-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.metric-box {
+  background: var(--bg-canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.metric-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.metric-val.amber { color: var(--accent-amber); }
+.metric-val.teal { color: var(--accent-teal); }
+.metric-val.gold { color: var(--accent-gold); }
+
+.canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  background: var(--bg-dark-stage);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--hairline-strong);
+}
+
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.stage-overlay-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  gap: 8px;
+}
+
+.synergy-pill {
+  background: var(--bg-hud-pill);
+  color: var(--bg-canvas);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips-tag {
+  color: var(--hud-cyan);
+  font-weight: 700;
+}
+
+.mult-tag {
+  color: var(--hud-coral);
+  font-weight: 700;
+}
+
+.wave-banner {
+  background: var(--bg-hud-pill);
+  color: var(--bg-canvas);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mobile-pad {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.dpad-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(2, 40px);
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.pad-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-pad);
+  color: var(--ink-primary);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pad-btn:active {
+  background: var(--accent-amber);
+  color: var(--ink-on-accent);
+}
+
+.emp-btn-floating {
+  pointer-events: auto;
+  padding: 12px 16px;
+  background: var(--accent-amber-float);
+  color: var(--ink-on-accent);
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 20;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.draft-dialog {
+  background: var(--bg-canvas);
+  color: var(--ink-primary);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 680px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.draft-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.draft-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.draft-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .draft-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.relic-option {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 140ms ease, transform 120ms ease;
+}
+
+.relic-option:hover {
+  border-color: var(--accent-amber);
+  transform: translateY(-2px);
+}
+
+.relic-option:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
+}
+
+.relic-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--accent-teal-soft);
+  color: var(--accent-teal);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.relic-name {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-top: 4px;
+}
+
+.relic-desc {
+  font-size: 0.84rem;
+  color: var(--ink-secondary);
+}
+
+.turret-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .turret-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.turret-btn {
+  background: var(--bg-canvas);
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.turret-btn:hover {
+  border-color: var(--ink-secondary);
+}
+
+.turret-btn.active {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber-soft);
+}
+
+.turret-btn:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
+}
+
+.turret-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.turret-cost {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--accent-amber);
+  font-weight: 700;
+}
+
+.turret-meta {
+  font-size: 0.78rem;
+  color: var(--ink-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.side-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.side-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.relic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 64px;
+}
+
+.relic-row {
+  background: var(--bg-canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--ink-secondary);
+  list-style: none;
+}
+
+.guide-list li {
+  padding-left: 12px;
+  border-left: 2px solid var(--accent-teal);
+}
+
+.log-feed {
+  background: var(--bg-canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  height: 148px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand-group">
+      <div>
+        <h1 class="brand-title">크로노 바스티온 3D (Chrono Bastion)</h1>
+        <p class="brand-sub">3D 성채 타일 포탑 배치와 유물 배수(Chips × Mult) 시너지, 지휘 드론 실시간 조작</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn btn-teal" id="btn-wave">다음 웨이브 호출 (Space)</button>
+      <button type="button" class="btn" id="btn-emp">드론 EMP 충격파 (E키)</button>
+      <button type="button" class="btn" id="btn-audio">사운드: 켜짐</button>
+      <button type="button" class="btn" id="btn-reset">새 작전 시작</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage-panel" aria-label="3D 전술 전장 스테이지">
+      <div class="hud-strip">
+        <div class="metric-box">
+          <span class="metric-label">시간핵 내구도</span>
+          <span class="metric-val amber num" id="hud-hp">100 / 100</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">에테르 자원</span>
+          <span class="metric-val teal num" id="hud-gold">240 AET</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">현재 웨이브</span>
+          <span class="metric-val num" id="hud-wave">1 / 5 단계</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">시너지 화력 공식</span>
+          <span class="metric-val gold num" id="hud-synergy">100% × 1.0x</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">전술 스코어</span>
+          <span class="metric-val num" id="hud-score">0</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" aria-label="3D 성채 디펜스 전장 캔버스"></canvas>
+
+        <div class="stage-overlay-top">
+          <div class="synergy-pill">
+            <span>화력 공식:</span>
+            <span class="chips-tag num" id="pill-chips">칩 +100%</span>
+            <span>×</span>
+            <span class="mult-tag num" id="pill-mult">배수 1.00x</span>
+          </div>
+          <div class="wave-banner" id="stage-status">전술 준비 완료 : 녹색 3D 타일을 클릭해 포탑을 배치하거나 웨이브를 시작하세요</div>
+        </div>
+
+        <div class="mobile-pad">
+          <div class="dpad-cluster" aria-label="드론 이동 패드">
+            <span></span>
+            <button type="button" class="pad-btn" data-move="up" aria-label="위로 이동">W</button>
+            <span></span>
+            <button type="button" class="pad-btn" data-move="left" aria-label="왼쪽 이동">A</button>
+            <button type="button" class="pad-btn" data-move="down" aria-label="아래로 이동">S</button>
+            <button type="button" class="pad-btn" data-move="right" aria-label="오른쪽 이동">D</button>
+          </div>
+          <button type="button" class="emp-btn-floating" id="btn-emp-mobile">EMP 노바 방출 (쿨타임 8초)</button>
+        </div>
+
+        <div class="modal-backdrop" id="draft-modal" hidden>
+          <div class="draft-dialog" role="dialog" aria-labelledby="draft-title">
+            <div class="draft-header">
+              <h2 class="draft-title" id="draft-title">시간균열 유물 공명 선택 (1개 선택)</h2>
+              <p class="brand-sub">기본 화력 칩(Chips)과 증폭 배수(Mult)를 곱연산으로 결합해 성채 화력을 극대화하세요.</p>
+            </div>
+            <div class="draft-grid" id="draft-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="turret-bar" role="radiogroup" aria-label="배치할 포탑 선택">
+        <button type="button" class="turret-btn active" data-turret="prism" id="turret-prism">
+          <div class="turret-top">
+            <span>1. 아크 프리즘 탑</span>
+            <span class="turret-cost">60 AET</span>
+          </div>
+          <p class="turret-meta">고속 연사 에너지 빔 · 단일 표적 타격</p>
+        </button>
+        <button type="button" class="turret-btn" data-turret="gravity" id="turret-gravity">
+          <div class="turret-top">
+            <span>2. 중력 우물 포탑</span>
+            <span class="turret-cost">85 AET</span>
+          </div>
+          <p class="turret-meta">광역 중력파 폭발 · 다수 적군 피해</p>
+        </button>
+        <button type="button" class="turret-btn" data-turret="chrono" id="turret-chrono">
+          <div class="turret-top">
+            <span>3. 크로노 감속장</span>
+            <span class="turret-cost">75 AET</span>
+          </div>
+          <p class="turret-meta">이동속도 45% 감속 · 지속 시간 피해</p>
+        </button>
+        <button type="button" class="turret-btn" data-turret="railgun" id="turret-railgun">
+          <div class="turret-top">
+            <span>4. 궤도 레일건</span>
+            <span class="turret-cost">120 AET</span>
+          </div>
+          <p class="turret-meta">초장거리 고화력 저격 · 보스 특화</p>
+        </button>
+      </div>
+    </section>
+
+    <aside class="side-column">
+      <section class="side-box">
+        <div class="side-title">
+          <span>장착된 시간 유물</span>
+          <span class="mono num" id="relic-count">0종</span>
+        </div>
+        <div class="relic-list" id="relic-list">
+          <div class="relic-row">
+            <span>웨이브 클리어 또는 보스 처치 시 유물 드래프트가 열립니다.</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-bonus-draft">에테르 90 AET 소모 후 즉시 유물 연성</button>
+      </section>
+
+      <section class="side-box">
+        <h2 class="side-title">작전 조작법 및 전술 규칙</h2>
+        <ul class="guide-list">
+          <li><strong>3D 타일 포탑 건설 및 강화:</strong> 하단 포탑(숫자키 1~4) 선택 후 3D 전장의 녹색 성채 타일을 클릭/터치하면 건설됩니다. 이미 지어진 포탑을 다시 클릭하면 <strong>50 AET로 레벨업(+45% 화력)</strong>합니다.</li>
+          <li><strong>지휘 드론 직접 기동:</strong> <strong>WASD / 방향키 / 화면 패드</strong>로 황금색 지휘 드론을 움직여 적에게 자동 근접 레이저를 퍼붓고, <strong>E키 / EMP 버튼</strong>으로 광역 스턴 충격파를 터뜨립니다.</li>
+          <li><strong>유물 배수(Chips × Mult) 공식:</strong> 칩 유물(+% 기본 화력)과 배수 유물(×배수 증폭)이 곱연산으로 결합되어 모든 포탑과 드론 화력에 실시간 반영됩니다.</li>
+        </ul>
+      </section>
+
+      <section class="side-box">
+        <div class="side-title">
+          <span>실시간 전술 교신 로그</span>
+          <span class="mono num" id="kill-counter">격추 0기</span>
+        </div>
+        <div class="log-feed" id="battle-log" aria-live="polite"></div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  const TURRET_SPECS = {
+    prism:   { name: "아크 프리즘", cost: 60, range: 4.8, fireRate: 0.42, damage: 24, color: 0x26D0CE, splash: 0, slow: 0 },
+    gravity: { name: "중력 우물",   cost: 85, range: 3.9, fireRate: 1.05, damage: 38, color: 0xFF7B39, splash: 2.1, slow: 0 },
+    chrono:  { name: "크로노 감속장", cost: 75, range: 4.2, fireRate: 0.70, damage: 16, color: 0x6C5CE7, splash: 1.6, slow: 0.45 },
+    railgun: { name: "궤도 레일건", cost: 120, range: 7.5, fireRate: 1.65, damage: 95, color: 0xFDCB6E, splash: 0, slow: 0 }
+  };
+
+  const RELIC_POOL = [
+    { id: "overclock_coil", name: "과충전 에테르 코일", type: "chips", val: 0.35, tag: "+35% 화력 칩", desc: "모든 포탑과 지휘 드론의 기본 화력 칩(Chips)이 +35% 증가합니다." },
+    { id: "prism_resonator", name: "프리즘 공명 수정", type: "mult", val: 0.28, tag: "×1.28 배수 증폭", desc: "최종 시너지 배수(Mult)가 +0.28x 곱연산 증폭됩니다." },
+    { id: "chrono_dividend", name: "시간의 복리 원장", type: "econ", val: 18, tag: "+80 AET 보급", desc: "즉시 에테르 +80 AET를 획득하고 화력 칩이 +20% 상승합니다." },
+    { id: "orbital_capacitor", name: "궤도 초전도 축전기", type: "mult", val: 0.35, tag: "×1.35 배수 증폭", desc: "최종 시너지 배수(Mult)가 +0.35x 증폭되고 EMP 범위가 확대됩니다." },
+    { id: "bastion_aegis", name: "바스티온 이지스 코어", type: "core", val: 30, tag: "내구도 회복 + 칩 +25%", desc: "시간핵 내구도를 +30 회복(최대 130)하고 기본 화력 칩이 +25% 증가합니다." },
+    { id: "singularity_lens", name: "특이점 중력 렌즈", type: "chips", val: 0.45, tag: "+45% 화력 칩", desc: "모든 포탑의 기본 화력 칩(Chips)이 +45% 대폭 상승합니다." }
+  ];
+
+  // Sound Synthesizer (WebAudio API)
+  const Sfx = {
+    ctx: null,
+    enabled: true,
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+    },
+    tone(freq, dur, type = "sine", vol = 0.08, slide = 0) {
+      if (!this.enabled) return;
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), now + dur);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      } catch (e) {}
+    },
+    shoot(kind) {
+      if (kind === "railgun") this.tone(220, 0.18, "sawtooth", 0.09, -120);
+      else if (kind === "gravity") this.tone(150, 0.14, "triangle", 0.08, -60);
+      else if (kind === "chrono") this.tone(520, 0.10, "sine", 0.05, 160);
+      else this.tone(680, 0.07, "square", 0.04, -180);
+    },
+    build() {
+      this.tone(440, 0.09, "triangle", 0.09, 220);
+      setTimeout(() => this.tone(660, 0.12, "triangle", 0.09, 220), 70);
+    },
+    relic() {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        setTimeout(() => this.tone(f, 0.16, "triangle", 0.09, 40), i * 65);
+      });
+    },
+    emp() {
+      this.tone(180, 0.38, "sawtooth", 0.12, 420);
+    }
+  };
+
+  // Game State
+  const state = {
+    hp: 100,
+    maxHp: 100,
+    gold: 240,
+    wave: 0,
+    maxWaves: 5,
+    waveActive: false,
+    spawnQueue: [],
+    spawnTimer: 0,
+    score: 0,
+    kills: 0,
+    selectedTurret: "prism",
+    chipsBonus: 1.0,
+    multBonus: 1.0,
+    relics: [],
+    turrets: [],
+    enemies: [],
+    projectiles: [],
+    particles: [],
+    empCooldown: 0,
+    keys: { up: false, down: false, left: false, right: false }
+  };
+
+  // DOM Elements
+  const elHp = document.getElementById("hud-hp");
+  const elGold = document.getElementById("hud-gold");
+  const elWave = document.getElementById("hud-wave");
+  const elSynergy = document.getElementById("hud-synergy");
+  const elScore = document.getElementById("hud-score");
+  const elPillChips = document.getElementById("pill-chips");
+  const elPillMult = document.getElementById("pill-mult");
+  const elStatus = document.getElementById("stage-status");
+  const elRelicList = document.getElementById("relic-list");
+  const elRelicCount = document.getElementById("relic-count");
+  const elLog = document.getElementById("battle-log");
+  const elKills = document.getElementById("kill-counter");
+  const elDraftModal = document.getElementById("draft-modal");
+  const elDraftOptions = document.getElementById("draft-options");
+
+  function addLog(msg) {
+    const row = document.createElement("div");
+    const time = new Date().toLocaleTimeString("ko-KR", { hour12: false, minute: "2-digit", second: "2-digit" });
+    row.textContent = "[" + time + "] " + msg;
+    elLog.prepend(row);
+    while (elLog.children.length > 30) elLog.removeChild(elLog.lastChild);
+  }
+
+  function totalDamageMultiplier() {
+    return state.chipsBonus * state.multBonus;
+  }
+
+  function updateHud() {
+    elHp.textContent = state.hp + " / " + state.maxHp;
+    elGold.textContent = Math.floor(state.gold) + " AET";
+    elWave.textContent = Math.max(1, state.wave) + " / " + state.maxWaves + " 단계" + (state.wave > state.maxWaves ? " (무한)" : "");
+    const chipsPct = Math.round(state.chipsBonus * 100);
+    const multStr = state.multBonus.toFixed(2) + "x";
+    elSynergy.textContent = chipsPct + "% × " + multStr;
+    elPillChips.textContent = "칩 " + chipsPct + "%";
+    elPillMult.textContent = "배수 " + multStr;
+    elScore.textContent = Math.floor(state.score).toLocaleString("ko-KR");
+    elKills.textContent = "격추 " + state.kills + "기";
+    elRelicCount.textContent = state.relics.length + "종";
+  }
+
+  // Three.js Scene Setup
+  const canvas = document.getElementById("game-canvas");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x12151B);
+  scene.fog = new THREE.FogExp2(0x12151B, 0.025);
+
+  const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.1, 100);
+  camera.position.set(0, 15.5, 14.5);
+  camera.lookAt(0, 0, 0.5);
+
+  const ambientLight = new THREE.AmbientLight(0xDCE4F2, 0.72);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xFFF3DC, 0.95);
+  dirLight.position.set(8, 18, 10);
+  scene.add(dirLight);
+
+  const coreLight = new THREE.PointLight(0xFF6B35, 1.6, 12);
+  coreLight.position.set(0, 2.2, 0);
+  scene.add(coreLight);
+
+  // Path & Buildable Tile Grid
+  const WAYPOINTS_LEFT = [
+    new THREE.Vector3(-9.0, 0.4, -3.0),
+    new THREE.Vector3(-4.0, 0.4, -3.0),
+    new THREE.Vector3(-4.0, 0.4,  2.0),
+    new THREE.Vector3( 0.0, 0.4,  2.0),
+    new THREE.Vector3( 0.0, 0.4,  0.0)
+  ];
+  const WAYPOINTS_RIGHT = [
+    new THREE.Vector3( 9.0, 0.4, -3.0),
+    new THREE.Vector3( 4.0, 0.4, -3.0),
+    new THREE.Vector3( 4.0, 0.4,  2.0),
+    new THREE.Vector3( 0.0, 0.4,  2.0),
+    new THREE.Vector3( 0.0, 0.4,  0.0)
+  ];
+
+  const tileMeshes = [];
+  const buildableSpots = [
+    [-6, -1], [-2, -3], [-2, 0], [-6, 2], [-2, 4],
+    [ 6, -1], [ 2, -3], [ 2, 0], [ 6, 2], [ 2, 4],
+    [-4, -5], [ 0, -4], [ 4, -5], [ 0, 4]
+  ];
+
+  // Ground Plane
+  const groundGeo = new THREE.PlaneGeometry(26, 18);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x181C24, roughness: 0.9 });
+  const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh.rotation.x = -Math.PI / 2;
+  scene.add(groundMesh);
+
+  const gridHelper = new THREE.GridHelper(24, 24, 0x2B3240, 0x202632);
+  gridHelper.position.y = 0.02;
+  scene.add(gridHelper);
+
+  // Draw Path Strip Tiles
+  const pathPoints = [
+    [-8,-3],[-7,-3],[-6,-3],[-5,-3],[-4,-3],[-4,-2],[-4,-1],[-4,0],[-4,1],[-4,2],[-3,2],[-2,2],[-1,2],[0,2],[0,1],
+    [8,-3],[7,-3],[6,-3],[5,-3],[4,-3],[4,-2],[4,-1],[4,0],[4,1],[4,2],[3,2],[2,2],[1,2]
+  ];
+  const pathGeo = new THREE.BoxGeometry(0.92, 0.14, 0.92);
+  const pathMat = new THREE.MeshStandardMaterial({ color: 0x272E3D, roughness: 0.7 });
+  pathPoints.forEach(([gx, gz]) => {
+    const m = new THREE.Mesh(pathGeo, pathMat);
+    m.position.set(gx, 0.07, gz);
+    scene.add(m);
+  });
+
+  // Chrono Core (Center Bastion)
+  const coreGroup = new THREE.Group();
+  const baseGeo = new THREE.CylinderGeometry(1.15, 1.35, 0.5, 8);
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x2D3546, metalness: 0.5, roughness: 0.4 });
+  const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+  baseMesh.position.y = 0.25;
+  coreGroup.add(baseMesh);
+
+  const crystalGeo = new THREE.OctahedronGeometry(0.85, 0);
+  const crystalMat = new THREE.MeshStandardMaterial({
+    color: 0xFF6B35,
+    emissive: 0xC84B1C,
+    emissiveIntensity: 0.65,
+    metalness: 0.3,
+    roughness: 0.2
+  });
+  const crystalMesh = new THREE.Mesh(crystalGeo, crystalMat);
+  crystalMesh.position.y = 1.45;
+  coreGroup.add(crystalMesh);
+  scene.add(coreGroup);
+
+  // Buildable Bastion Pads
+  const padGeo = new THREE.CylinderGeometry(0.75, 0.85, 0.26, 6);
+  buildableSpots.forEach(([gx, gz], idx) => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x1E4D45,
+      emissive: 0x0E6B5E,
+      emissiveIntensity: 0.25,
+      roughness: 0.45
+    });
+    const pad = new THREE.Mesh(padGeo, mat);
+    pad.position.set(gx, 0.13, gz);
+    pad.userData = { spotIndex: idx, gx, gz, turret: null };
+    scene.add(pad);
+    tileMeshes.push(pad);
+  });
+
+  // Command Drone (Player-Controlled Hero Unit)
+  const droneGroup = new THREE.Group();
+  const droneBody = new THREE.Mesh(
+    new THREE.ConeGeometry(0.45, 0.9, 6),
+    new THREE.MeshStandardMaterial({ color: 0xF5B041, emissive: 0x9A630A, emissiveIntensity: 0.4, metalness: 0.6, roughness: 0.3 })
+  );
+  droneBody.rotation.x = Math.PI;
+  droneGroup.add(droneBody);
+
+  const droneRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.62, 0.06, 8, 24),
+    new THREE.MeshBasicMaterial({ color: 0x5CD6C8 })
+  );
+  droneRing.rotation.x = Math.PI / 2;
+  droneGroup.add(droneRing);
+  droneGroup.position.set(0, 2.2, 3.2);
+  scene.add(droneGroup);
+  let droneFireCooldown = 0;
+
+  function resizeRenderer() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / Math.max(1, rect.height);
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resizeRenderer);
+  resizeRenderer();
+
+  // Create 3D Turret Mesh on Pad
+  function buildOrUpgradeTurret(pad) {
+    const existing = pad.userData.turret;
+    if (existing) {
+      const upgCost = 50 * existing.level;
+      if (state.gold < upgCost) {
+        addLog("에테르 부족: 포탑 강화에 " + upgCost + " AET가 필요합니다.");
+        return;
+      }
+      state.gold -= upgCost;
+      existing.level += 1;
+      existing.mesh.scale.setScalar(1 + (existing.level - 1) * 0.18);
+      Sfx.build();
+      addLog(existing.spec.name + " Lv." + existing.level + " 강화 완료! (화력 +45%)");
+      updateHud();
+      return;
+    }
+
+    const spec = TURRET_SPECS[state.selectedTurret];
+    if (state.gold < spec.cost) {
+      addLog("에테르 부족: " + spec.name + " 건설에 " + spec.cost + " AET가 필요합니다.");
+      return;
+    }
+    state.gold -= spec.cost;
+
+    const tGroup = new THREE.Group();
+    const towerBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.45, 0.58, 0.55, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2F3640, metalness: 0.5, roughness: 0.4 })
+    );
+    towerBase.position.y = 0.28;
+    tGroup.add(towerBase);
+
+    const headGeo = state.selectedTurret === "railgun"
+      ? new THREE.BoxGeometry(0.38, 0.38, 1.15)
+      : state.selectedTurret === "gravity"
+      ? new THREE.SphereGeometry(0.42, 12, 12)
+      : new THREE.OctahedronGeometry(0.44, 0);
+
+    const headMat = new THREE.MeshStandardMaterial({
+      color: spec.color,
+      emissive: spec.color,
+      emissiveIntensity: 0.45,
+      metalness: 0.4,
+      roughness: 0.25
+    });
+    const headMesh = new THREE.Mesh(headGeo, headMat);
+    headMesh.position.y = 0.85;
+    tGroup.add(headMesh);
+
+    tGroup.position.set(pad.userData.gx, 0.26, pad.userData.gz);
+    scene.add(tGroup);
+
+    const turretObj = {
+      kind: state.selectedTurret,
+      spec,
+      level: 1,
+      cooldown: 0,
+      mesh: tGroup,
+      head: headMesh,
+      pos: new THREE.Vector3(pad.userData.gx, 0.9, pad.userData.gz)
+    };
+    pad.userData.turret = turretObj;
+    pad.material.color.setHex(0x3B4252);
+    pad.material.emissiveIntensity = 0.05;
+    state.turrets.push(turretObj);
+
+    Sfx.build();
+    addLog(spec.name + " 배치 완료 (" + pad.userData.gx + ", " + pad.userData.gz + ")");
+    updateHud();
+  }
+
+  // Raycasting for 3D Tile Click / Touch
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
+  function onCanvasPointerDown(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(tileMeshes, false);
+    if (hits.length > 0) {
+      buildOrUpgradeTurret(hits[0].object);
+    }
+  }
+  canvas.addEventListener("pointerdown", onCanvasPointerDown);
+
+  // Spawn Enemy Unit
+  function spawnEnemy(archetype) {
+    const fromRight = Math.random() > 0.5;
+    const waypoints = fromRight ? WAYPOINTS_RIGHT : WAYPOINTS_LEFT;
+    const waveScale = 1 + (state.wave - 1) * 0.34;
+    const isBoss = archetype === "boss";
+    const isTank = archetype === "tank";
+
+    const maxHp = Math.round((isBoss ? 520 : isTank ? 185 : 85) * waveScale);
+    const speed = isBoss ? 1.25 : isTank ? 1.55 : 2.35;
+    const reward = isBoss ? 85 : isTank ? 28 : 18;
+
+    const geo = isBoss
+      ? new THREE.DodecahedronGeometry(0.72, 0)
+      : isTank
+      ? new THREE.BoxGeometry(0.68, 0.68, 0.68)
+      : new THREE.TetrahedronGeometry(0.50, 0);
+
+    const col = isBoss ? 0xFF3860 : isTank ? 0xFFA62B : 0xB86BFF;
+    const mat = new THREE.MeshStandardMaterial({
+      color: col,
+      emissive: col,
+      emissiveIntensity: 0.35,
+      roughness: 0.3
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(waypoints[0]);
+    scene.add(mesh);
+
+    state.enemies.push({
+      mesh,
+      waypoints,
+      wpIndex: 1,
+      hp: maxHp,
+      maxHp,
+      speed,
+      reward,
+      isBoss,
+      slowTimer: 0,
+      stunTimer: 0
+    });
+  }
+
+  function startNextWave() {
+    if (state.waveActive) return;
+    state.wave += 1;
+    state.waveActive = true;
+    const count = 6 + state.wave * 3;
+    state.spawnQueue = [];
+    for (let i = 0; i < count; i++) {
+      if (i === count - 1 && state.wave >= 2) state.spawnQueue.push("boss");
+      else if (i % 3 === 0) state.spawnQueue.push("tank");
+      else state.spawnQueue.push("stalker");
+    }
+    state.spawnTimer = 0.2;
+    elStatus.textContent = "웨이브 " + state.wave + " 교전 진행 중 : 침공군 " + count + "기 접근!";
+    addLog("웨이브 " + state.wave + " 시작! 시간균열 침공군 " + count + "기가 출현합니다.");
+    Sfx.tone(330, 0.22, "sawtooth", 0.08, 110);
+    updateHud();
+  }
+
+  // Trigger EMP Shockwave from Command Drone
+  function triggerEmp() {
+    if (state.empCooldown > 0) {
+      addLog("EMP 충전 중 (" + state.empCooldown.toFixed(1) + "초 남음)");
+      return;
+    }
+    state.empCooldown = 8.0;
+    Sfx.emp();
+
+    const ringGeo = new THREE.RingGeometry(0.3, 0.6, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x5CD6C8, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.position.set(droneGroup.position.x, 0.3, droneGroup.position.z);
+    scene.add(ringMesh);
+    state.particles.push({ mesh: ringMesh, age: 0, life: 0.55, expand: 9.5 });
+
+    const empDmg = 32 * totalDamageMultiplier();
+    let hitCount = 0;
+    state.enemies.forEach(en => {
+      const dist = en.mesh.position.distanceTo(droneGroup.position);
+      if (dist <= 5.2) {
+        en.hp -= empDmg;
+        en.stunTimer = 1.8;
+        hitCount++;
+      }
+    });
+    addLog("드론 EMP 노바 방출! 적 " + hitCount + "기 기절 및 광역 피해!");
+  }
+
+  // Relic Synergy Draft Modal
+  function openRelicDraft(reasonText) {
+    elDraftOptions.innerHTML = "";
+    const shuffled = [...RELIC_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+    shuffled.forEach(relic => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "relic-option";
+      btn.innerHTML =
+        '<div>' +
+          '<span class="relic-tag">' + relic.tag + '</span>' +
+          '<div class="relic-name">' + relic.name + '</div>' +
+          '<p class="relic-desc">' + relic.desc + '</p>' +
+        '</div>' +
+        '<span class="mono" style="font-size:0.78rem;color:var(--accent-amber);font-weight:700;">선택하여 시너지 각인</span>';
+      btn.addEventListener("click", () => {
+        applyRelic(relic);
+        elDraftModal.hidden = true;
+      });
+      elDraftOptions.appendChild(btn);
+    });
+    document.getElementById("draft-title").textContent = reasonText || "시간균열 유물 공명 선택 (1개 선택)";
+    elDraftModal.hidden = false;
+  }
+
+  function applyRelic(relic) {
+    state.relics.push(relic);
+    if (relic.type === "chips") {
+      state.chipsBonus += relic.val;
+    } else if (relic.type === "mult") {
+      state.multBonus = +(state.multBonus * (1 + relic.val)).toFixed(2);
+    } else if (relic.type === "econ") {
+      state.gold += 80;
+      state.chipsBonus += 0.20;
+    } else if (relic.type === "core") {
+      state.maxHp = Math.min(150, state.maxHp + 15);
+      state.hp = Math.min(state.maxHp, state.hp + relic.val);
+      state.chipsBonus += 0.25;
+    }
+    Sfx.relic();
+    renderRelicDeck();
+    updateHud();
+    addLog("유물 각인 완료: [" + relic.name + "] 현재 화력 배율 " + (totalDamageMultiplier() * 100).toFixed(0) + "%");
+  }
+
+  function renderRelicDeck() {
+    elRelicList.innerHTML = "";
+    state.relics.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "relic-row";
+      row.innerHTML = '<strong>' + r.name + '</strong><span class="mono" style="color:var(--accent-teal);">' + r.tag + '</span>';
+      elRelicList.appendChild(row);
+    });
+  }
+
+  // Spawn Laser Beam Line
+  function spawnBeam(fromVec, toVec, colorHex) {
+    const pts = [fromVec.clone(), toVec.clone()];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.95 });
+    const line = new THREE.Line(geo, mat);
+    scene.add(line);
+    state.particles.push({ mesh: line, age: 0, life: 0.14, expand: 0 });
+  }
+
+  // Main Simulation Step
+  let lastTime = performance.now();
+
+  function tick(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    crystalMesh.rotation.y += dt * 1.4;
+    crystalMesh.position.y = 1.45 + Math.sin(now * 0.003) * 0.12;
+    droneRing.rotation.z += dt * 2.5;
+
+    if (state.empCooldown > 0) {
+      state.empCooldown = Math.max(0, state.empCooldown - dt);
+    }
+
+    const moveSpeed = 6.2;
+    let dx = 0, dz = 0;
+    if (state.keys.left) dx -= 1;
+    if (state.keys.right) dx += 1;
+    if (state.keys.up) dz -= 1;
+    if (state.keys.down) dz += 1;
+    if (dx !== 0 || dz !== 0) {
+      const len = Math.hypot(dx, dz);
+      droneGroup.position.x = Math.max(-9.5, Math.min(9.5, droneGroup.position.x + (dx / len) * moveSpeed * dt));
+      droneGroup.position.z = Math.max(-6.5, Math.min(6.5, droneGroup.position.z + (dz / len) * moveSpeed * dt));
+    }
+
+    droneFireCooldown -= dt;
+    if (droneFireCooldown <= 0 && state.enemies.length > 0) {
+      let nearest = null, minDist = 4.6;
+      state.enemies.forEach(en => {
+        const d = en.mesh.position.distanceTo(droneGroup.position);
+        if (d < minDist) { minDist = d; nearest = en; }
+      });
+      if (nearest) {
+        droneFireCooldown = 0.35;
+        const dmg = 15 * totalDamageMultiplier();
+        nearest.hp -= dmg;
+        spawnBeam(droneGroup.position, nearest.mesh.position, 0xF5B041);
+      }
+    }
+
+    if (state.waveActive && state.spawnQueue.length > 0) {
+      state.spawnTimer -= dt;
+      if (state.spawnTimer <= 0) {
+        const nextType = state.spawnQueue.shift();
+        spawnEnemy(nextType);
+        state.spawnTimer = 0.85;
+      }
+    }
+
+    const mult = totalDamageMultiplier();
+    state.turrets.forEach(t => {
+      t.head.rotation.y += dt * 1.2;
+      t.cooldown -= dt;
+      if (t.cooldown > 0) return;
+
+      let target = null;
+      let bestDist = t.spec.range;
+      state.enemies.forEach(en => {
+        const d = en.mesh.position.distanceTo(t.pos);
+        if (d <= bestDist) {
+          bestDist = d;
+          target = en;
+        }
+      });
+
+      if (target) {
+        t.cooldown = t.spec.fireRate;
+        const levelScale = 1 + (t.level - 1) * 0.45;
+        const dmg = t.spec.damage * levelScale * mult;
+
+        if (t.spec.splash > 0) {
+          state.enemies.forEach(en => {
+            if (en.mesh.position.distanceTo(target.mesh.position) <= t.spec.splash) {
+              en.hp -= dmg;
+              if (t.spec.slow > 0) en.slowTimer = 2.4;
+            }
+          });
+        } else {
+          target.hp -= dmg;
+        }
+
+        spawnBeam(t.pos, target.mesh.position, t.spec.color);
+        Sfx.shoot(t.kind);
+      }
+    });
+
+    for (let i = state.enemies.length - 1; i >= 0; i--) {
+      const en = state.enemies[i];
+      if (en.hp <= 0) {
+        scene.remove(en.mesh);
+        state.enemies.splice(i, 1);
+        state.gold += en.reward;
+        state.kills += 1;
+        state.score += Math.round(en.reward * 15 * mult);
+        updateHud();
+        continue;
+      }
+
+      en.mesh.rotation.x += dt * 2.0;
+      en.mesh.rotation.y += dt * 2.4;
+
+      if (en.stunTimer > 0) {
+        en.stunTimer -= dt;
+        continue;
+      }
+      if (en.slowTimer > 0) en.slowTimer -= dt;
+
+      const wp = en.waypoints[en.wpIndex];
+      const dir = new THREE.Vector3().subVectors(wp, en.mesh.position);
+      const dist = dir.length();
+      const curSpeed = en.speed * (en.slowTimer > 0 ? 0.55 : 1.0);
+
+      if (dist <= curSpeed * dt) {
+        en.mesh.position.copy(wp);
+        en.wpIndex += 1;
+        if (en.wpIndex >= en.waypoints.length) {
+          const coreDmg = en.isBoss ? 25 : 10;
+          state.hp = Math.max(0, state.hp - coreDmg);
+          scene.remove(en.mesh);
+          state.enemies.splice(i, 1);
+          Sfx.tone(110, 0.25, "sawtooth", 0.12, -40);
+          addLog("경고! 침공군이 시간핵에 충돌 (-" + coreDmg + " 내구도)");
+          updateHud();
+
+          if (state.hp <= 0) {
+            state.waveActive = false;
+            state.spawnQueue = [];
+            elStatus.textContent = "시간핵 붕괴 : 새 작전 시작 버튼을 눌러 재도전하세요";
+            addLog("작전 종료: 최종 전술 스코어 " + state.score.toLocaleString("ko-KR") + "점");
+          }
+        }
+      } else {
+        dir.normalize();
+        en.mesh.position.addScaledVector(dir, curSpeed * dt);
+      }
+    }
+
+    if (state.waveActive && state.spawnQueue.length === 0 && state.enemies.length === 0 && state.hp > 0) {
+      state.waveActive = false;
+      const waveBonus = 55 + state.wave * 15;
+      state.gold += waveBonus;
+      state.score += Math.round(500 * state.wave * mult);
+      updateHud();
+
+      if (state.wave === state.maxWaves) {
+        elStatus.textContent = "전술 승리 달성! 5웨이브 완벽 방어 성공 (계속해서 무한 오버드라이브 진행 가능)";
+        addLog("축하합니다! 웨이브 5 최종 보스를 격파하고 성채를 수호했습니다!");
+      } else {
+        elStatus.textContent = "웨이브 " + state.wave + " 방어 성공! 유물 시너지를 선택하고 다음 웨이브를 준비하세요";
+      }
+      openRelicDraft("웨이브 " + state.wave + " 클리어 보상 : 시간 유물 선택");
+    }
+
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const p = state.particles[i];
+      p.age += dt;
+      if (p.age >= p.life) {
+        scene.remove(p.mesh);
+        state.particles.splice(i, 1);
+      } else {
+        const ratio = 1 - p.age / p.life;
+        if (p.mesh.material) p.mesh.material.opacity = ratio;
+        if (p.expand > 0) {
+          const s = 1 + (p.age / p.life) * p.expand;
+          p.mesh.scale.set(s, s, 1);
+        }
+      }
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  // UI Controls & Shortcuts
+  document.querySelectorAll(".turret-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".turret-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.selectedTurret = btn.dataset.turret;
+    });
+  });
+
+  document.getElementById("btn-wave").addEventListener("click", startNextWave);
+  document.getElementById("btn-emp").addEventListener("click", triggerEmp);
+  document.getElementById("btn-emp-mobile").addEventListener("click", triggerEmp);
+
+  document.getElementById("btn-audio").addEventListener("click", (e) => {
+    Sfx.enabled = !Sfx.enabled;
+    e.currentTarget.textContent = "사운드: " + (Sfx.enabled ? "켜짐" : "꺼짐");
+  });
+
+  document.getElementById("btn-bonus-draft").addEventListener("click", () => {
+    if (state.gold < 90) {
+      addLog("에테르 부족: 유물 즉시 연성에 90 AET가 필요합니다.");
+      return;
+    }
+    state.gold -= 90;
+    updateHud();
+    openRelicDraft("에테르 연성 : 추가 시간 유물 선택");
+  });
+
+  function resetGame() {
+    state.enemies.forEach(en => scene.remove(en.mesh));
+    state.turrets.forEach(t => scene.remove(t.mesh));
+    tileMeshes.forEach(pad => {
+      pad.userData.turret = null;
+      pad.material.color.setHex(0x1E4D45);
+      pad.material.emissiveIntensity = 0.25;
+    });
+    state.hp = 100;
+    state.maxHp = 100;
+    state.gold = 240;
+    state.wave = 0;
+    state.waveActive = false;
+    state.spawnQueue = [];
+    state.score = 0;
+    state.kills = 0;
+    state.chipsBonus = 1.0;
+    state.multBonus = 1.0;
+    state.relics = [];
+    state.turrets = [];
+    state.enemies = [];
+    droneGroup.position.set(0, 2.2, 3.2);
+    elRelicList.innerHTML = '<div class="relic-row"><span>웨이브 클리어 또는 보스 처치 시 유물 드래프트가 열립니다.</span></div>';
+    elStatus.textContent = "새 작전 준비 완료 : 초기 방어 포탑 2기가 자동 배치되었습니다";
+    updateHud();
+
+    buildOrUpgradeTurret(tileMeshes[1]);
+    buildOrUpgradeTurret(tileMeshes[6]);
+    addLog("작전 개시: 초기 방어용 아크 프리즘 포탑 2기가 성채에 배치되었습니다.");
+  }
+
+  document.getElementById("btn-reset").addEventListener("click", resetGame);
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "w" || e.key === "W" || e.key === "ArrowUp") state.keys.up = true;
+    if (e.key === "s" || e.key === "S" || e.key === "ArrowDown") state.keys.down = true;
+    if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") state.keys.left = true;
+    if (e.key === "d" || e.key === "D" || e.key === "ArrowRight") state.keys.right = true;
+    if (e.key === "1") document.getElementById("turret-prism").click();
+    if (e.key === "2") document.getElementById("turret-gravity").click();
+    if (e.key === "3") document.getElementById("turret-chrono").click();
+    if (e.key === "4") document.getElementById("turret-railgun").click();
+    if (e.key === "e" || e.key === "E") triggerEmp();
+    if (e.key === " " && elDraftModal.hidden) {
+      e.preventDefault();
+      startNextWave();
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "w" || e.key === "W" || e.key === "ArrowUp") state.keys.up = false;
+    if (e.key === "s" || e.key === "S" || e.key === "ArrowDown") state.keys.down = false;
+    if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") state.keys.left = false;
+    if (e.key === "d" || e.key === "D" || e.key === "ArrowRight") state.keys.right = false;
+  });
+
+  document.querySelectorAll(".pad-btn").forEach(btn => {
+    const dir = btn.dataset.move;
+    const start = (ev) => { ev.preventDefault(); state.keys[dir] = true; };
+    const end = (ev) => { ev.preventDefault(); state.keys[dir] = false; };
+    btn.addEventListener("pointerdown", start);
+    btn.addEventListener("pointerup", end);
+    btn.addEventListener("pointerleave", end);
+  });
+
+  resetGame();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
